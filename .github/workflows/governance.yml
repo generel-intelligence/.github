@@ -1,0 +1,60 @@
+name: governance
+
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Verify policy files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(README.md AGENTS.md CONTRIBUTING.md SECURITY.md CODEOWNERS)
+          case "$GITHUB_REPOSITORY" in
+            generel-intelligence/.github|generel-intelligence/protocol)
+              required+=(LICENSE NOTICE)
+              ;;
+            generel-intelligence/catalog)
+              required+=(LICENSE)
+              ;;
+          esac
+          for path in "${required[@]}"; do
+            test -s "$path" || {
+              echo "::error file=$path::Required policy file is missing or empty."
+              exit 1
+            }
+          done
+
+      - name: Verify Developer Certificate of Origin
+        if: github.event_name == 'pull_request' && github.event.repository.private == false
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          failed=0
+          while read -r commit; do
+            if ! git show -s --format=%B "$commit" |
+              grep -Eq '^Signed-off-by: .+ <[^>]+>$'; then
+              echo "::error::Commit $commit lacks a valid Signed-off-by trailer."
+              failed=1
+            fi
+          done < <(git rev-list "$BASE_SHA..$HEAD_SHA")
+          exit "$failed"
