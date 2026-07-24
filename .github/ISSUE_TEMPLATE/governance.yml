@@ -1,0 +1,19 @@
+name: Governance correction
+description: Report a current governance or repository-policy problem.
+title: "governance: "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Current problem
+      description: Identify the conflicting, missing, or unsafe policy.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Recommended correction
+      description: Describe the smallest change that resolves the problem.
+    validations:
+      required: true
